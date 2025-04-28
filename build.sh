@@ -1,36 +1,31 @@
-#!/usr/bin/env bash
+#!/bin/bash
 set -euo pipefail
 
-SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
-LLVM_INSTALL_PATH="{SCRIPT_DIR}/third_party/llvm-install"
+BUILD_DIR="build"
+EXECUTABLE="find-functions"
 
-# LLVMConfig.cmake is found int LLVM_INSTALL_PATH
-LLVM_DIR=${LLVM_INSTALL_PATH}/lib/cmake/llvm
+echo "=== [1/3] 创建构建目录 (${BUILD_DIR}) ==="
+mkdir -p ${BUILD_DIR}
+cd ${BUILD_DIR}
 
-function build_llvm()
-{
-    echo "build_llvm"
-    cmake -G Ninja ../llvm \
-	  -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra" \
-	  -DCMAKE_BUILD_TYPE=Release \
-	  -DCMAKE_INSTALL_PREFIX=$LLVM_INSTALL \
-	  -DCMAKE_C_COMPILER=clang  \
-	  -DCMAKE_CXX_COMPILER=clang++ \
-	  -DLLVM_TARGETS_TO_BUILD="AArch64"
-    ninja
-    ninja install
-}
+echo "=== [2/3] 运行 CMake 配置（生成 Ninja 构建文件） ==="
+cmake -G Ninja -DLLVM_DIR=/opt/homebrew/opt/llvm@17/lib/cmake/llvm -DClang_DIR=/opt/homebrew/opt/llvm@17/lib/cmake/clang ..
 
-function build_proj()
-{
-    
+echo "=== [3/3] 使用 Ninja 编译项目 ==="
+ninja
 
-}
+echo "✅ 编译成功！可执行文件在 ${BUILD_DIR}/${EXECUTABLE}"
 
-function main()
-{
-    # build_llvm
+# 回到项目根目录
+cd ..
 
-}
+echo "=== [4/4] 运行测试用例 ==="
+# 你可以根据需要传测试文件
+if [[ -f "${BUILD_DIR}/${EXECUTABLE}" ]]; then
+    ${BUILD_DIR}/${EXECUTABLE} test.cpp -- -std=c++17
+else
+    echo "❌ 错误：找不到可执行文件 ${BUILD_DIR}/${EXECUTABLE}"
+    exit 1
+fi
 
-main "$@"
+echo "✅ 测试完成！"

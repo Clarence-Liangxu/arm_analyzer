@@ -1,8 +1,7 @@
 cmake_minimum_required(VERSION 3.13)
 project(FindFunctionsTool)
 
-# 指定LLVM的安装路径
-set(LLVM_DIR "/opt/homebrew/opt/llvm@17/lib/cmake/llvm")
+# 必须在build.sh中指定LLVM的安装路径
 find_package(LLVM REQUIRED CONFIG)
 find_package(Clang REQUIRED CONFIG)
 

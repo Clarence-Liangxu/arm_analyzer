@@ -1,67 +1,81 @@
 #include "clang/AST/AST.h"
-#include "clang/AST/RecursiveASTVisitor.h"
-#include "clang/Frontend/CompilerInstance.h"
+#include "clang/AST/ASTContext.h"
 #include "clang/Frontend/FrontendActions.h"
 #include "clang/Tooling/CommonOptionsParser.h"
 #include "clang/Tooling/Tooling.h"
+#include "clang/ASTMatchers/ASTMatchers.h"
+#include "clang/ASTMatchers/ASTMatchFinder.h"
 #include "llvm/Support/CommandLine.h"
+#include "llvm/Support/raw_ostream.h"
 
 using namespace clang;
+using namespace clang::ast_matchers;
 using namespace clang::tooling;
+using namespace llvm;
 
-// AST Visitor：遍历函数声明
-class FindFunctionsVisitor : public RecursiveASTVisitor<FindFunctionsVisitor> {
+// 命令行选项定义
+static cl::OptionCategory ToolCategory("arm-intrinsic-replacer options");
+
+// === 核心处理器：负责处理匹配到的 for 循环 ===
+class ForLoopHandler : public MatchFinder::MatchCallback {
 public:
-    explicit FindFunctionsVisitor(ASTContext *Context) : Context(Context) {}
+    virtual void run(const MatchFinder::MatchResult &Result) {
+        const ForStmt *forStmt = Result.Nodes.getNodeAs<ForStmt>("forLoop");
 
-    bool VisitFunctionDecl(FunctionDecl *FuncDecl) {
-        if (FuncDecl->isThisDeclarationADefinition()) {
-            llvm::outs() << "Found function: "
-                         << FuncDecl->getNameInfo().getName().getAsString()
-                         << "\n";
+        if (!forStmt)
+            return;
+
+        ASTContext *Context = Result.Context;
+        const Stmt *body = forStmt->getBody();
+        if (!body)
+            return;
+
+        // 尝试找到 body 里面的二元赋值：dst[i] = src1[i] + src2[i];
+        if (const auto *compound = dyn_cast<CompoundStmt>(body)) {
+            for (const Stmt *stmt : compound->body()) {
+                if (const auto *binOp = dyn_cast<BinaryOperator>(stmt)) {
+                    if (binOp->isAssignmentOp()) {
+                        const Expr *rhs = binOp->getRHS()->IgnoreParenCasts();
+                        if (const auto *innerBinOp = dyn_cast<BinaryOperator>(rhs)) {
+                            if (innerBinOp->getOpcode() == BO_Add) {
+                                // 成功匹配到形如 dst[i] = src1[i] + src2[i];
+                                SourceManager &SM = Context->getSourceManager();
+                                SourceLocation loc = forStmt->getBeginLoc();
+
+                                llvm::outs() << "=== 找到可优化的循环 ===\n";
+                                llvm::outs() << "文件: " << SM.getFilename(loc) << "\n";
+                                llvm::outs() << "行号: " << SM.getSpellingLineNumber(loc) << "\n";
+                                llvm::outs() << "建议: 可以使用 ARM NEON 指令 vaddq_s32 来替换此加法循环\n";
+                                llvm::outs() << "========================\n\n";
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
         }
-        return true;
-    }
-
-private:
-    ASTContext *Context;
-};
-
-// AST Consumer：处理每个AST
-class FindFunctionsConsumer : public ASTConsumer {
-public:
-    explicit FindFunctionsConsumer(ASTContext *Context)
-        : Visitor(Context) {}
-
-    void HandleTranslationUnit(ASTContext &Context) override {
-        Visitor.TraverseDecl(Context.getTranslationUnitDecl());
-    }
-
-private:
-    FindFunctionsVisitor Visitor;
-};
-
-// FrontendAction：为每个输入文件创建Consumer
-class FindFunctionsAction : public ASTFrontendAction {
-public:
-    std::unique_ptr<ASTConsumer> CreateASTConsumer(CompilerInstance &CI,
-                                                   StringRef InFile) override {
-        return std::make_unique<FindFunctionsConsumer>(&CI.getASTContext());
     }
 };
 
-// 命令行选项分类
-static llvm::cl::OptionCategory MyToolCategory("find-functions options");
-
+// === 主程序入口 ===
 int main(int argc, const char **argv) {
-    auto ExpectedParser = CommonOptionsParser::create(argc, argv, MyToolCategory);
+    auto ExpectedParser = CommonOptionsParser::create(argc, argv, ToolCategory);
     if (!ExpectedParser) {
         llvm::errs() << ExpectedParser.takeError();
         return 1;
     }
     CommonOptionsParser &OptionsParser = ExpectedParser.get();
 
-    ClangTool Tool(OptionsParser.getCompilations(), OptionsParser.getSourcePathList());
+    ClangTool Tool(OptionsParser.getCompilations(),
+                   OptionsParser.getSourcePathList());
 
-    return Tool.run(newFrontendActionFactory<FindFunctionsAction>().get());
+    ForLoopHandler Handler;
+    MatchFinder Finder;
+
+    // 匹配 for 循环
+    StatementMatcher ForLoopMatcher = forStmt().bind("forLoop");
+
+    Finder.addMatcher(ForLoopMatcher, &Handler);
+
+    return Tool.run(newFrontendActionFactory(&Finder).get());
 }

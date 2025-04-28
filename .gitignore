@@ -1,3 +1,6 @@
+# Ignore directory
+build/
+third_party/
 # Prerequisites
 *.d
 

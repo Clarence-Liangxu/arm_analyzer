@@ -24,7 +24,10 @@ souffle -F souffle/facts -D souffle/output souffle/patterns.dl
 
 echo "[✔] Optimization suggestions:"
 if [ -s souffle/output/optimize.csv ]; then
-  column -t -s $'\t' souffle/output/optimize.csv
+  echo -e "📌 Suggestions:"
+  while IFS=$'\t' read -r file line op type instr; do
+    printf "  %s:%s → use \033[1m%s()\033[0m for %s (%s)\n" "$file" "$line" "$instr" "$op" "$type"
+  done < souffle/output/optimize.csv
 else
   echo "⚠️  No optimization opportunities detected."
 fi

@@ -19,13 +19,15 @@
 .decl negation(file: symbol, line: number, type: symbol)
 .input negation
 
-.decl optimize(file: symbol, line: number, op: symbol, type: symbol)
+// 增加建议字段
+.decl optimize(file: symbol, line: number, op: symbol, type: symbol, suggest: symbol)
 .output optimize
 
-optimize(f, l, "addition", t)        :- addition(f, l, t).
-optimize(f, l, "subtraction", t)     :- subtraction(f, l, t).
-optimize(f, l, "multiplication", t)  :- multiplication(f, l, t).
-optimize(f, l, "division", t)        :- division(f, l, t).
-optimize(f, l, "fma", t)             :- fma(f, l, t).
-optimize(f, l, "fabs", t)            :- fabs(f, l, t).
-optimize(f, l, "negation", t)        :- negation(f, l, t).
+// 建议替换为 ARM intrinsic
+optimize(f, l, "addition", "f32", "vaddq_f32")         :- addition(f, l, "f32").
+optimize(f, l, "subtraction", "f32", "vsubq_f32")      :- subtraction(f, l, "f32").
+optimize(f, l, "multiplication", "f32", "vmulq_f32")   :- multiplication(f, l, "f32").
+optimize(f, l, "division", "f32", "vdivq_f32")         :- division(f, l, "f32").
+optimize(f, l, "fma", "f32", "vfmaq_f32")              :- fma(f, l, "f32").
+optimize(f, l, "fabs", "f32", "vabsq_f32")             :- fabs(f, l, "f32").
+optimize(f, l, "negation", "f32", "vnegq_f32")         :- negation(f, l, "f32").

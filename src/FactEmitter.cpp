@@ -42,16 +42,8 @@ void emitFact(const std::string &op, const clang::ForStmt *FS, const std::string
     row << file << "\t" << line << "\t" << type << "\n";
 
     llvm::errs() << "📥 Writing fact line: " << row.str();
-    llvm::errs() << "📥 Writing fact: " << filename << " — " << row.str() << "\n";
+    llvm::errs() << "📥 Writing fact: " << std::filesystem::absolute(filename) << " — " << row.str() << "\n";
     out << row.str();
     out.flush();              // ✅ 强制写入
     out.close();              // ✅ 关闭触发写入
-    llvm::errs() << "📁 Writing to file: " << std::filesystem::absolute(filename) << "\n";
-    // 📄 读取文件验证写入成功
-    llvm::errs() << "📄 Contents of " << filename << " after write:\n";
-    std::ifstream in(filename);
-    std::string lineContent;
-    while (std::getline(in, lineContent)) {
-        llvm::errs() << "    " << lineContent << "\n";
-    }
 }

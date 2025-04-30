@@ -1,7 +1,26 @@
 [
-  {
-    "directory": "/Users/clarence/Workspace/arm_analyzer",
-    "command": "/opt/homebrew/opt/llvm@17/bin/clang++ -x c -std=c99 -I/opt/homebrew/opt/llvm@17/include test/sample.c",
-    "file": "test/sample.c"
-  }
+{
+  "directory": "/Users/clarence/Workspace/arm_analyzer/build",
+  "command": "/usr/bin/c++  -I/opt/homebrew/opt/llvm@17/include -I/Users/clarence/Workspace/arm_analyzer/src -std=gnu++17 -arch arm64   -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -o CMakeFiles/arm_intrin_tool.dir/src/FactEmitter.cpp.o -c /Users/clarence/Workspace/arm_analyzer/src/FactEmitter.cpp",
+  "file": "/Users/clarence/Workspace/arm_analyzer/src/FactEmitter.cpp",
+  "output": "CMakeFiles/arm_intrin_tool.dir/src/FactEmitter.cpp.o"
+},
+{
+  "directory": "/Users/clarence/Workspace/arm_analyzer/build",
+  "command": "/usr/bin/c++  -I/opt/homebrew/opt/llvm@17/include -I/Users/clarence/Workspace/arm_analyzer/src -std=gnu++17 -arch arm64   -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -o CMakeFiles/arm_intrin_tool.dir/src/LoopAnalyzer.cpp.o -c /Users/clarence/Workspace/arm_analyzer/src/LoopAnalyzer.cpp",
+  "file": "/Users/clarence/Workspace/arm_analyzer/src/LoopAnalyzer.cpp",
+  "output": "CMakeFiles/arm_intrin_tool.dir/src/LoopAnalyzer.cpp.o"
+},
+{
+  "directory": "/Users/clarence/Workspace/arm_analyzer/build",
+  "command": "/usr/bin/c++  -I/opt/homebrew/opt/llvm@17/include -I/Users/clarence/Workspace/arm_analyzer/src -std=gnu++17 -arch arm64   -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -o CMakeFiles/arm_intrin_tool.dir/src/Suggest.cpp.o -c /Users/clarence/Workspace/arm_analyzer/src/Suggest.cpp",
+  "file": "/Users/clarence/Workspace/arm_analyzer/src/Suggest.cpp",
+  "output": "CMakeFiles/arm_intrin_tool.dir/src/Suggest.cpp.o"
+},
+{
+  "directory": "/Users/clarence/Workspace/arm_analyzer/build",
+  "command": "/usr/bin/c++  -I/opt/homebrew/opt/llvm@17/include -I/Users/clarence/Workspace/arm_analyzer/src -std=gnu++17 -arch arm64   -D__STDC_CONSTANT_MACROS -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -o CMakeFiles/arm_intrin_tool.dir/src/main.cpp.o -c /Users/clarence/Workspace/arm_analyzer/src/main.cpp",
+  "file": "/Users/clarence/Workspace/arm_analyzer/src/main.cpp",
+  "output": "CMakeFiles/arm_intrin_tool.dir/src/main.cpp.o"
+}
 ]

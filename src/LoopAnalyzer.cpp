@@ -28,45 +28,54 @@ void LoopHandler::run(const MatchFinder::MatchResult &Result) {
                      << SM.getFilename(FS->getForLoc()) << ":"
                      << SM.getSpellingLineNumber(FS->getForLoc()) << "\n";
 
-        // 处理复合语句块 {...}
         if (const auto *CS = llvm::dyn_cast<CompoundStmt>(Body)) {
             for (const Stmt *SubStmt : CS->body()) {
                 if (!SubStmt) continue;
 
-                // 分析赋值表达式
                 if (const auto *Assign = llvm::dyn_cast<BinaryOperator>(SubStmt)) {
                     if (Assign->isAssignmentOp()) {
                         const Expr *RHS = Assign->getRHS()->IgnoreParenImpCasts();
 
-                        // 检测 fmaf 函数调用
+                        // fmaf
                         if (const auto *Call = llvm::dyn_cast<CallExpr>(RHS)) {
                             if (const FunctionDecl *FD = Call->getDirectCallee()) {
-                                std::string FuncName = FD->getNameInfo().getAsString();
-                                if (FuncName == "fmaf") {
+                                std::string name = FD->getNameInfo().getAsString();
+                                if (name == "fmaf") {
                                     std::string type = detectType(Call->getType());
-                                    llvm::errs() << "  ➤ Detected function call: fmaf (type: "
-                                                 << type << ")\n";
+                                    llvm::errs() << "  ➤ Detected function call: fmaf (type: " << type << ")\n";
                                     emitFact("fma", FS, type, SM);
+                                } else if (name == "fabsf") {
+                                    std::string type = detectType(Call->getType());
+                                    llvm::errs() << "  ➤ Detected function call: fabsf (type: " << type << ")\n";
+                                    emitFact("fabs", FS, type, SM);
                                 }
                             }
                         }
 
-                        // 检测 + - * /
+                        // + - * /
                         if (const auto *InnerBO = llvm::dyn_cast<BinaryOperator>(RHS)) {
                             std::string op;
                             switch (InnerBO->getOpcode()) {
-                                case BO_Add: op = "add"; break;
-                                case BO_Sub: op = "sub"; break;
-                                case BO_Mul: op = "mul"; break;
-                                case BO_Div: op = "div"; break;
+                                case BO_Add: op = "addition"; break;
+                                case BO_Sub: op = "subtraction"; break;
+                                case BO_Mul: op = "multiplication"; break;
+                                case BO_Div: op = "division"; break;
                                 default: break;
                             }
 
                             if (!op.empty()) {
                                 std::string type = detectType(InnerBO->getType());
-                                llvm::errs() << "  ➤ Detected binary op: " << op
-                                             << " (type: " << type << ")\n";
+                                llvm::errs() << "  ➤ Detected binary op: " << op << " (type: " << type << ")\n";
                                 emitFact(op, FS, type, SM);
+                            }
+                        }
+
+                        // -x
+                        if (const auto *UO = llvm::dyn_cast<UnaryOperator>(RHS)) {
+                            if (UO->getOpcode() == UO_Minus) {
+                                std::string type = detectType(UO->getType());
+                                llvm::errs() << "  ➤ Detected unary negation: -x (type: " << type << ")\n";
+                                emitFact("negation", FS, type, SM);
                             }
                         }
                     }
@@ -83,6 +92,5 @@ std::unique_ptr<clang::ASTConsumer> LoopFrontendAction::CreateASTConsumer(Compil
         forStmt().bind("forLoop"),
         &Handler
     );
-
     return Matcher.newASTConsumer();
 }

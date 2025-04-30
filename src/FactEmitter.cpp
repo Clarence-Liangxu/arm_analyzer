@@ -1,6 +1,7 @@
 #include "FactEmitter.h"
 #include <fstream>
 #include <filesystem>
+#include <sstream>
 
 std::string detectType(clang::QualType qt) {
     const clang::Type *typePtr = qt.getTypePtrOrNull();
@@ -22,12 +23,35 @@ std::string detectType(clang::QualType qt) {
 void emitFact(const std::string &op, const clang::ForStmt *FS, const std::string &type, const clang::SourceManager &SM) {
     std::filesystem::create_directories("souffle/facts");
     std::string filename = "souffle/facts/" + op + ".facts";
+
     std::ofstream out(filename, std::ios::app);
+    if (!out.is_open()) {
+        llvm::errs() << "❌ Failed to open fact file: " << filename << "\n";
+        return;
+    }
 
     auto loc = FS->getForLoc();
-    std::string file = SM.getFilename(loc).str();
-    unsigned line = SM.getSpellingLineNumber(loc);
+    std::string fullpath = SM.getFilename(loc).str();
+    std::string file = std::filesystem::path(fullpath).filename().string();
 
-    out << file << "\t" << line << "\t" << type << "\n";
-    out.close();
+    if (file.empty())
+        file = "unknown.c";
+
+    unsigned line = SM.getSpellingLineNumber(loc);
+    std::ostringstream row;
+    row << file << "\t" << line << "\t" << type << "\n";
+
+    llvm::errs() << "📥 Writing fact line: " << row.str();
+    llvm::errs() << "📥 Writing fact: " << filename << " — " << row.str() << "\n";
+    out << row.str();
+    out.flush();              // ✅ 强制写入
+    out.close();              // ✅ 关闭触发写入
+
+    // 📄 读取文件验证写入成功
+    llvm::errs() << "📄 Contents of " << filename << " after write:\n";
+    std::ifstream in(filename);
+    std::string lineContent;
+    while (std::getline(in, lineContent)) {
+        llvm::errs() << "    " << lineContent << "\n";
+    }
 }

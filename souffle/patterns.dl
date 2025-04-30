@@ -1,23 +1,31 @@
 .decl addition(file: symbol, line: number, type: symbol)
 .input addition
 
-.decl sub(file: symbol, line: number, type: symbol)
-.input sub
+.decl subtraction(file: symbol, line: number, type: symbol)
+.input subtraction
 
-.decl mul(file: symbol, line: number, type: symbol)
-.input mul
+.decl multiplication(file: symbol, line: number, type: symbol)
+.input multiplication
 
-.decl div(file: symbol, line: number, type: symbol)
-.input div
+.decl division(file: symbol, line: number, type: symbol)
+.input division
 
 .decl fma(file: symbol, line: number, type: symbol)
 .input fma
 
+.decl fabs(file: symbol, line: number, type: symbol)
+.input fabs
+
+.decl negation(file: symbol, line: number, type: symbol)
+.input negation
+
 .decl optimize(file: symbol, line: number, op: symbol, type: symbol)
 .output optimize
 
-optimize(f, l, "add", t) :- addition(f, l, t).
-optimize(f, l, "sub", t) :- sub(f, l, t).
-optimize(f, l, "mul", t) :- mul(f, l, t).
-optimize(f, l, "div", t) :- div(f, l, t).
-optimize(f, l, "fma", t) :- fma(f, l, t).
+optimize(f, l, "addition", t)        :- addition(f, l, t).
+optimize(f, l, "subtraction", t)     :- subtraction(f, l, t).
+optimize(f, l, "multiplication", t)  :- multiplication(f, l, t).
+optimize(f, l, "division", t)        :- division(f, l, t).
+optimize(f, l, "fma", t)             :- fma(f, l, t).
+optimize(f, l, "fabs", t)            :- fabs(f, l, t).
+optimize(f, l, "negation", t)        :- negation(f, l, t).

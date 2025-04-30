@@ -1,6 +1,3 @@
-// ARM Intrinsic Pattern Matching Rules
-
-// ===== Declarations =====
 .decl addition(file: symbol, line: number, type: symbol)
 .input addition
 
@@ -16,21 +13,11 @@
 .decl fma(file: symbol, line: number, type: symbol)
 .input fma
 
-.decl fabs(file: symbol, line: number, type: symbol)
-.input fabs
-
-.decl neg(file: symbol, line: number, type: symbol)
-.input neg
-
-// ===== Output: Suggestions =====
 .decl optimize(file: symbol, line: number, op: symbol, type: symbol)
 .output optimize
 
-// ===== Rules =====
 optimize(f, l, "add", t) :- addition(f, l, t).
 optimize(f, l, "sub", t) :- sub(f, l, t).
 optimize(f, l, "mul", t) :- mul(f, l, t).
 optimize(f, l, "div", t) :- div(f, l, t).
 optimize(f, l, "fma", t) :- fma(f, l, t).
-optimize(f, l, "fabs", t) :- fabs(f, l, t).
-optimize(f, l, "neg", t) :- neg(f, l, t).

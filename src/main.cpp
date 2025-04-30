@@ -1,16 +1,14 @@
 #include "LoopAnalyzer.h"
+
 #include "clang/Tooling/CommonOptionsParser.h"
 #include "clang/Tooling/Tooling.h"
 #include "clang/Frontend/FrontendActions.h"
-#include "clang/Frontend/CompilerInstance.h"
 #include "llvm/Support/CommandLine.h"
-#include "llvm/Support/Error.h"
 
-using namespace clang;
 using namespace clang::tooling;
+using namespace llvm;
 
-// 🔥 自定义 Category
-static llvm::cl::OptionCategory ArmIntrinCategory("arm-intrin-suggester options");
+static cl::OptionCategory ArmIntrinCategory("ARM Intrinsic Suggester Options");
 
 int main(int argc, const char **argv) {
     auto ExpectedParser = CommonOptionsParser::create(argc, argv, ArmIntrinCategory);
@@ -18,8 +16,8 @@ int main(int argc, const char **argv) {
         llvm::errs() << ExpectedParser.takeError();
         return 1;
     }
-    CommonOptionsParser &OptionsParser = ExpectedParser.get();
 
+    CommonOptionsParser &OptionsParser = ExpectedParser.get();
     ClangTool Tool(OptionsParser.getCompilations(), OptionsParser.getSourcePathList());
     return Tool.run(newFrontendActionFactory<LoopFrontendAction>().get());
 }

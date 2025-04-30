@@ -1,5 +1,3 @@
-// Sample C code to test ARM Intrinsic Pattern Detection
-
 #include <math.h>
 
 void test_add(float *a, float *b, float *c, int n) {

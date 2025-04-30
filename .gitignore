@@ -1,6 +1,7 @@
 # Ignore directory
 build/
 third_party/
+souffle/
 # Prerequisites
 *.d
 

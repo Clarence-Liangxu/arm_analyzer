@@ -17,5 +17,6 @@ public:
     std::unique_ptr<clang::ASTConsumer> CreateASTConsumer(clang::CompilerInstance &CI, llvm::StringRef file) override;
 
 private:
-    LoopHandler Handler;
+    MatchFinder Matcher;         // ✅ Matcher 成员变量，避免悬空
+    LoopHandler Handler;         // ✅ Handler 成员变量，防止 Bus error
 };

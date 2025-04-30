@@ -1,5 +1,4 @@
 #pragma once
-
 #include "clang/AST/Stmt.h"
 #include "clang/AST/Type.h"
 #include "clang/Basic/SourceManager.h"

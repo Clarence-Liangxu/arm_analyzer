@@ -11,89 +11,63 @@
 #include "clang/AST/OperationKinds.h"
 #include "clang/Frontend/FrontendActions.h"
 #include "clang/Tooling/Tooling.h"
+#include "llvm/Support/raw_ostream.h"
 
 using namespace clang;
 using namespace clang::tooling;
 using namespace clang::ast_matchers;
 
 void LoopHandler::run(const MatchFinder::MatchResult &Result) {
-    return;
     if (const ForStmt *FS = Result.Nodes.getNodeAs<ForStmt>("forLoop")) {
         const ASTContext *Context = Result.Context;
         const SourceManager &SM = Context->getSourceManager();
         const Stmt *Body = FS->getBody();
-
         if (!Body) return;
 
-        // 🔒 只处理 CompoundStmt 类型的循环体
+        llvm::errs() << "🌀 Matched a for-loop at "
+                     << SM.getFilename(FS->getForLoc()) << ":"
+                     << SM.getSpellingLineNumber(FS->getForLoc()) << "\n";
+
+        // 处理复合语句块 {...}
         if (const auto *CS = llvm::dyn_cast<CompoundStmt>(Body)) {
             for (const Stmt *SubStmt : CS->body()) {
                 if (!SubStmt) continue;
 
-                // 检测二元操作符（+ - * /）
-                if (const auto *BO = llvm::dyn_cast<BinaryOperator>(SubStmt)) {
-                    std::string op;
+                // 分析赋值表达式
+                if (const auto *Assign = llvm::dyn_cast<BinaryOperator>(SubStmt)) {
+                    if (Assign->isAssignmentOp()) {
+                        const Expr *RHS = Assign->getRHS()->IgnoreParenImpCasts();
 
-                    switch (BO->getOpcode()) {
-                        case BO_Add: op = "add"; break;
-                        case BO_Sub: op = "sub"; break;
-                        case BO_Mul: op = "mul"; break;
-                        case BO_Div: op = "div"; break;
-                        default: break;
-                    }
-
-                    if (!op.empty()) {
-                        //llvm::errs() << "Detected op=" << op << " type=" << detectType(BO->getType()) << "\n";
-                        //std::string type = detectType(BO->getType());
-                        //emitFact(op, FS, type, SM);
-                        
-                    }
-                }
-
-                // 检测函数调用（fmaf）
-                if (const auto *ExprNode = llvm::dyn_cast<Expr>(SubStmt)) {
-                    if (const auto *Call = llvm::dyn_cast<CallExpr>(ExprNode)) {
-                        if (const FunctionDecl *FD = Call->getDirectCallee()) {
-                            std::string FuncName = FD->getNameInfo().getAsString();
-                            if (FuncName == "fmaf") {
-                                //llvm::errs() << "Detected op=" << op << " type=" << detectType(BO->getType()) << "\n";
-                                //std::string type = detectType(Call->getType());
-                                //emitFact("fma", FS, type, SM);
+                        // 检测 fmaf 函数调用
+                        if (const auto *Call = llvm::dyn_cast<CallExpr>(RHS)) {
+                            if (const FunctionDecl *FD = Call->getDirectCallee()) {
+                                std::string FuncName = FD->getNameInfo().getAsString();
+                                if (FuncName == "fmaf") {
+                                    std::string type = detectType(Call->getType());
+                                    llvm::errs() << "  ➤ Detected function call: fmaf (type: "
+                                                 << type << ")\n";
+                                    emitFact("fma", FS, type, SM);
+                                }
                             }
                         }
-                    }
-                }
-            }
-        } else {
-            // 🔒 非 CompoundStmt 的 for body（单条语句），也尝试处理一次
-            const Stmt *SubStmt = Body;
 
-            if (!SubStmt) return;
+                        // 检测 + - * /
+                        if (const auto *InnerBO = llvm::dyn_cast<BinaryOperator>(RHS)) {
+                            std::string op;
+                            switch (InnerBO->getOpcode()) {
+                                case BO_Add: op = "add"; break;
+                                case BO_Sub: op = "sub"; break;
+                                case BO_Mul: op = "mul"; break;
+                                case BO_Div: op = "div"; break;
+                                default: break;
+                            }
 
-            if (const auto *BO = llvm::dyn_cast<BinaryOperator>(SubStmt)) {
-                std::string op;
-
-                switch (BO->getOpcode()) {
-                    case BO_Add: op = "add"; break;
-                    case BO_Sub: op = "sub"; break;
-                    case BO_Mul: op = "mul"; break;
-                    case BO_Div: op = "div"; break;
-                    default: break;
-                }
-
-                if (!op.empty()) {
-                    //std::string type = detectType(BO->getType());
-                    //emitFact(op, FS, type, SM);
-                }
-            }
-
-            if (const auto *ExprNode = llvm::dyn_cast<Expr>(SubStmt)) {
-                if (const auto *Call = llvm::dyn_cast<CallExpr>(ExprNode)) {
-                    if (const FunctionDecl *FD = Call->getDirectCallee()) {
-                        std::string FuncName = FD->getNameInfo().getAsString();
-                        if (FuncName == "fmaf") {
-                            //std::string type = detectType(Call->getType());
-                            //emitFact("fma", FS, type, SM);
+                            if (!op.empty()) {
+                                std::string type = detectType(InnerBO->getType());
+                                llvm::errs() << "  ➤ Detected binary op: " << op
+                                             << " (type: " << type << ")\n";
+                                emitFact(op, FS, type, SM);
+                            }
                         }
                     }
                 }
@@ -105,14 +79,10 @@ void LoopHandler::run(const MatchFinder::MatchResult &Result) {
 void LoopFrontendAction::EndSourceFileAction() {}
 
 std::unique_ptr<clang::ASTConsumer> LoopFrontendAction::CreateASTConsumer(CompilerInstance &CI, StringRef file) {
-    auto Matcher = std::make_unique<MatchFinder>();
-
-    Matcher->addMatcher(
-        forStmt(hasLoopInit(declStmt(hasSingleDecl(
-            varDecl(hasInitializer(anything()))
-        )))).bind("forLoop"),
+    Matcher.addMatcher(
+        forStmt().bind("forLoop"),
         &Handler
     );
 
-    return Matcher->newASTConsumer();
+    return Matcher.newASTConsumer();
 }

@@ -46,7 +46,7 @@ void emitFact(const std::string &op, const clang::ForStmt *FS, const std::string
     out << row.str();
     out.flush();              // ✅ 强制写入
     out.close();              // ✅ 关闭触发写入
-
+    llvm::errs() << "📁 Writing to file: " << std::filesystem::absolute(filename) << "\n";
     // 📄 读取文件验证写入成功
     llvm::errs() << "📄 Contents of " << filename << " after write:\n";
     std::ifstream in(filename);

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.13)
-project(FindFunctionsTool)
+project(arm_intrin_tool)
 
 # 必须在build.sh中指定LLVM的安装路径
 find_package(LLVM REQUIRED CONFIG)
@@ -16,11 +16,32 @@ include_directories(${LLVM_INCLUDE_DIRS})
 include_directories(${CLANG_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 
-add_executable(find-functions find_functions.cpp)
+# 添加源文件
+add_executable(arm_intrin_tool
+    src/main.cpp
+    src/LoopAnalyzer.cpp
+    src/FactEmitter.cpp
+    src/Suggest.cpp
+)
 
-target_link_libraries(find-functions
-  PRIVATE
-  clangTooling
-  clangBasic
-  clangASTMatchers
+target_link_libraries(arm_intrin_tool
+    PRIVATE
+    clangFrontend
+    clangTooling
+    clangBasic
+    clangParse
+    clangDriver
+    clangSerialization
+    clangSema
+    clangEdit
+    clangAnalysis
+    clangAST
+    clangASTMatchers
+    clangSupport
+    clangFormat
+    clangToolingInclusions
+    clangToolingCore
+    clangRewrite
+    clangLex
+    LLVM
 )

@@ -1,0 +1,7 @@
+[
+  {
+    "directory": "/Users/clarence/Workspace/app/arm_analyzer",
+    "command": "/opt/homebrew/opt/llvm@17/bin/clang++ -x c -std=c99 -I/opt/homebrew/opt/llvm@17/include test/sample.c",
+    "file": "test/sample.c"
+  }
+]

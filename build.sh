@@ -1,31 +1,83 @@
 #!/bin/bash
-set -euo pipefail
+set -e
 
-BUILD_DIR="build"
-EXECUTABLE="find-functions"
-
-echo "=== [1/3] 创建构建目录 (${BUILD_DIR}) ==="
-mkdir -p ${BUILD_DIR}
-cd ${BUILD_DIR}
-
-echo "=== [2/3] 运行 CMake 配置（生成 Ninja 构建文件） ==="
-cmake -G Ninja -DLLVM_DIR=/opt/homebrew/opt/llvm@17/lib/cmake/llvm -DClang_DIR=/opt/homebrew/opt/llvm@17/lib/cmake/clang ..
-
-echo "=== [3/3] 使用 Ninja 编译项目 ==="
-ninja
-
-echo "✅ 编译成功！可执行文件在 ${BUILD_DIR}/${EXECUTABLE}"
-
-# 回到项目根目录
-cd ..
-
-echo "=== [4/4] 运行测试用例 ==="
-# 你可以根据需要传测试文件
-if [[ -f "${BUILD_DIR}/${EXECUTABLE}" ]]; then
-    ${BUILD_DIR}/${EXECUTABLE} test.cpp -- -std=c++17
+# 自动判断 macOS/Linux 核心数
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    CORES=$(sysctl -n hw.ncpu)
 else
-    echo "❌ 错误：找不到可执行文件 ${BUILD_DIR}/${EXECUTABLE}"
+    CORES=$(nproc)
+fi
+
+PROJECT_DIR=$(pwd)
+TEST_FILE="test/sample.c"
+
+echo "🔍 Checking dependencies..."
+
+# 检查 souffle 是否安装
+if ! command -v souffle &> /dev/null
+then
+    echo "❌ Soufflé not found. Please install Soufflé Datalog engine first."
     exit 1
 fi
 
-echo "✅ 测试完成！"
+echo "✅ Dependencies OK."
+
+echo "🧹 Cleaning old build and facts..."
+rm -rf build souffle/facts/*.facts souffle/output/* compile_commands.json
+
+echo "🔨 [1/3] Building project with $CORES cores..."
+
+mkdir build
+cd build
+
+# 关键：让 cmake 自动输出 compile_commands.json
+cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ..
+make -j"$CORES"
+
+# 拷贝 compile_commands.json（备用，虽然后面自己覆盖）
+cp compile_commands.json ../
+
+cd ..
+
+echo "✅ Build completed."
+
+echo "🧩 [1.5/3] Generating compile_commands.json for $TEST_FILE..."
+
+# 根据文件后缀智能判断语言
+EXT="${TEST_FILE##*.}"
+
+# 默认C++
+LANG_OPTION=""
+STD_OPTION="-std=c++17"
+
+if [[ "$EXT" == "c" ]]; then
+    LANG_OPTION="-x c"
+    STD_OPTION="-std=c99"
+fi
+
+# 生成 compile_commands.json
+cat <<EOF > compile_commands.json
+[
+  {
+    "directory": "$PROJECT_DIR",
+    "command": "/opt/homebrew/opt/llvm@17/bin/clang++ $LANG_OPTION $STD_OPTION -I/opt/homebrew/opt/llvm@17/include $TEST_FILE",
+    "file": "$TEST_FILE"
+  }
+]
+EOF
+
+echo "✅ compile_commands.json generated."
+
+echo "🧪 [2/3] Running static analyzer..."
+
+./build/arm_intrin_tool "$TEST_FILE"
+
+echo "✅ Static analysis completed."
+
+echo "📊 [3/3] Running Soufflé analysis..."
+
+souffle -F souffle/facts -D souffle/output souffle/patterns.dl
+
+echo "✅ Soufflé analysis completed."
+
+echo -e "\033[1;32m🎉 All green! Your ARM intrinsic suggestions are ready! 🚀\033[0m"
